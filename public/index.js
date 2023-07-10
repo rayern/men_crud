@@ -1,11 +1,21 @@
-document.addEventListener('DOMContentLoaded', function () {
-    fetch('http://localhost:4000/getAll')
-    .then(response => response.json())
-    .then(data => loadHTMLTable(data['data']));
-    
+document.addEventListener('DOMContentLoaded', function(){
+    fetchAll('id', 'desc')
 });
 
-document.querySelector('table tbody').addEventListener('click', function(event) {
+document.querySelector('table thead').addEventListener('click', function (event) {
+    if (event.target.className === "col-head") {
+        const order = event.target.getAttribute("data-order");
+        const param = event.target.getAttribute("data-param");
+        fetchAll(param, order)
+        if(order == 'desc'){
+            event.target.setAttribute("data-order","asc");
+        }
+        else{
+            event.target.setAttribute("data-order","desc");
+        }
+    }
+});
+document.querySelector('table tbody').addEventListener('click', function (event) {
     if (event.target.className === "delete-row-btn") {
         deleteRowById(event.target.dataset.id);
     }
@@ -17,24 +27,36 @@ document.querySelector('table tbody').addEventListener('click', function(event) 
 const updateBtn = document.querySelector('#update-row-btn');
 const searchBtn = document.querySelector('#search-btn');
 
-searchBtn.onclick = function() {
-    const searchValue = document.querySelector('#search-input').value;
+searchBtn.onclick = function () {
+    const name = document.querySelector('#search-input').value;
+    fetch('http://localhost:4000/search', {
+        headers: {
+            'Content-type': 'application/json'
+        },
+        method: 'POST',
+        body: JSON.stringify({ name: name })
+    })
+        .then(response => response.json())
+        .then(data => loadHTMLTable(data['data']));
+}
 
-    fetch('http://localhost:4000/search/' + searchValue)
-    .then(response => response.json())
-    .then(data => loadHTMLTable(data['data']));
+function fetchAll(orderby, order) {
+    const apiUrl = 'http://localhost:4000/getAll';
+    fetch(`${apiUrl}?orderby=${orderby}&order=${order}`)
+        .then(response => response.json())
+        .then(data => loadHTMLTable(data['data']));
 }
 
 function deleteRowById(id) {
     fetch('http://localhost:4000/delete/' + id, {
         method: 'DELETE'
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
 }
 
 function handleEditRow(id) {
@@ -43,7 +65,7 @@ function handleEditRow(id) {
     document.querySelector('#update-name-input').dataset.id = id;
 }
 
-updateBtn.onclick = function() {
+updateBtn.onclick = function () {
     const updateNameInput = document.querySelector('#update-name-input');
 
 
@@ -52,42 +74,49 @@ updateBtn.onclick = function() {
     fetch('http://localhost:4000/update', {
         method: 'PATCH',
         headers: {
-            'Content-type' : 'application/json'
+            'Content-type': 'application/json'
         },
         body: JSON.stringify({
             id: updateNameInput.dataset.id,
             name: updateNameInput.value
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
 }
 
 
-const addBtn = document.querySelector('#add-name-btn');
+const apiBtn = document.querySelector('#call-api-btn');
 
-addBtn.onclick = function () {
-    const nameInput = document.querySelector('#name-input');
-    const name = nameInput.value;
-    nameInput.value = "";
+apiBtn.onclick = function () {
+    document.querySelector('#message').textContent = ''
+    const countInput = document.querySelector('#count-input');
+    const count = countInput.value;
+    countInput.value = "";
 
-    fetch('http://localhost:4000/insert', {
+    fetch('http://localhost:4000/callAPI', {
         headers: {
             'Content-type': 'application/json'
         },
         method: 'POST',
-        body: JSON.stringify({ name : name})
+        body: JSON.stringify({ count: count })
     })
-    .then(response => response.json())
-    .then(data => insertRowIntoTable(data['data']));
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fetchAll("id", "desc")
+            }
+            else {
+                document.querySelector('#message').textContent = data.message
+            }
+        });
 }
 
 function insertRowIntoTable(data) {
-    console.log(data);
     const table = document.querySelector('table tbody');
     const isTableData = table.querySelector('.no-data');
 
@@ -125,11 +154,11 @@ function loadHTMLTable(data) {
 
     let tableHtml = "";
 
-    data.forEach(function ({id, name, date_added}) {
+    data.forEach(function ({ id, name, count }) {
         tableHtml += "<tr>";
         tableHtml += `<td>${id}</td>`;
         tableHtml += `<td>${name}</td>`;
-        tableHtml += `<td>${new Date(date_added).toLocaleString()}</td>`;
+        tableHtml += `<td>${count}</td>`;
         tableHtml += `<td><button class="delete-row-btn" data-id=${id}>Delete</td>`;
         tableHtml += `<td><button class="edit-row-btn" data-id=${id}>Edit</td>`;
         tableHtml += "</tr>";

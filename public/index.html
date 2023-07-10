@@ -8,11 +8,12 @@
 </head>
 <body>
     <main>
-        <label>Name:</label>
-        <input type="text" id="name-input">
-        <button id="add-name-btn">Add Name</button>
-
-        <br><br><br>
+        <label>Count:</label>
+        <input type="number" id="count-input">
+        <button id="call-api-btn">Call API</button>
+        <br><br>
+        <span style="color:red;" id="message"></span>
+        <br><br>
         <div>
            <input placeholder="search by name" id="search-input">
            <button id="search-btn">Search</button>
@@ -20,9 +21,9 @@
 
         <table id="table">
             <thead>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Date Added</th>
+                <th style="cursor:pointer;" class="col-head" data-order="asc" data-param="id">ID</th>
+                <th style="cursor:pointer;" class="col-head" data-order="asc" data-param="name">Name</th>
+                <th style="cursor:pointer;" class="col-head" data-order="desc" data-param="count">Count</th>
                 <th>Delete</th>
                 <th>Edit</th>
             </thead>

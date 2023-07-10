@@ -23,10 +23,10 @@ class DbService {
         return instance ? instance : new DbService();
     }
 
-    async getAllData() {
+    async getAllData(orderby, order) {
         try {
             const response = await new Promise((resolve, reject) => {
-                const query = "SELECT * FROM names;";
+                const query = `SELECT * FROM words ORDER BY ${orderby} ${order};`;
 
                 connection.query(query, (err, results) => {
                     if (err) reject(new Error(err.message));
@@ -40,21 +40,32 @@ class DbService {
     }
 
 
-    async insertNewName(name) {
+    async processWord(name) {
         try {
-            const dateAdded = new Date();
             const insertId = await new Promise((resolve, reject) => {
-                const query = "INSERT INTO names (name, date_added) VALUES (?,?);";
-
-                connection.query(query, [name, dateAdded] , (err, result) => {
+                const query = 'SELECT * FROM words WHERE name = ?';
+                connection.query(query, [name], (err, results) => {
                     if (err) reject(new Error(err.message));
-                    resolve(result.insertId);
-                })
+                    if (results.length > 0) {
+                        const existingCount = results[0].count;
+                        const updateQuery = 'UPDATE words SET count = ? WHERE name = ?';
+                        connection.query(updateQuery, [existingCount + 1, name], (error, result) => {
+                            if (error) reject(new Error(error.message));
+                            resolve(result.insertId);
+                        });
+                    }
+                    else {
+                        const insertQuery = 'INSERT INTO words (name) VALUES (?)';
+                        connection.query(insertQuery, [name], (error, result) => {
+                            if (error) reject(new Error(error.message));
+                            resolve(result.insertId);
+                        });
+                    }
+                });
             });
             return {
                 id : insertId,
-                name : name,
-                dateAdded : dateAdded
+                name : name
             };
         } catch (error) {
             console.log(error);
@@ -62,60 +73,60 @@ class DbService {
     }
 
     async deleteRowById(id) {
-        try {
-            id = parseInt(id, 10); 
-            const response = await new Promise((resolve, reject) => {
-                const query = "DELETE FROM names WHERE id = ?";
-    
-                connection.query(query, [id] , (err, result) => {
-                    if (err) reject(new Error(err.message));
-                    resolve(result.affectedRows);
-                })
-            });
-    
-            return response === 1 ? true : false;
-        } catch (error) {
-            console.log(error);
-            return false;
+            try {
+                id = parseInt(id, 10);
+                const response = await new Promise((resolve, reject) => {
+                    const query = "DELETE FROM words WHERE id = ?";
+
+                    connection.query(query, [id], (err, result) => {
+                        if (err) reject(new Error(err.message));
+                        resolve(result.affectedRows);
+                    })
+                });
+
+                return response === 1 ? true : false;
+            } catch (error) {
+                console.log(error);
+                return false;
+            }
         }
-    }
 
     async updateNameById(id, name) {
-        try {
-            id = parseInt(id, 10); 
-            
-            const response = await new Promise((resolve, reject) => {
-                const query = "UPDATE names SET name = ? WHERE id = ?";
-    
-                connection.query(query, [name, id] , (err, result) => {
-                    if (err) reject(new Error(err.message));
-                    resolve(result.affectedRows);
-                })
-            });
-    
-            return response === 1 ? true : false;
-        } catch (error) {
-            console.log(error);
-            return false;
+            try {
+                id = parseInt(id, 10);
+
+                const response = await new Promise((resolve, reject) => {
+                    const query = "UPDATE words SET name = ? WHERE id = ?";
+
+                    connection.query(query, [name, id], (err, result) => {
+                        if (err) reject(new Error(err.message));
+                        resolve(result.affectedRows);
+                    })
+                });
+
+                return response === 1 ? true : false;
+            } catch (error) {
+                console.log(error);
+                return false;
+            }
         }
-    }
 
     async searchByName(name) {
-        try {
-            const response = await new Promise((resolve, reject) => {
-                const query = "SELECT * FROM names WHERE name = ?;";
+            try {
+                const response = await new Promise((resolve, reject) => {
+                    const query = "SELECT * FROM words WHERE name = ?;";
 
-                connection.query(query, [name], (err, results) => {
-                    if (err) reject(new Error(err.message));
-                    resolve(results);
-                })
-            });
+                    connection.query(query, [name], (err, results) => {
+                        if (err) reject(new Error(err.message));
+                        resolve(results);
+                    })
+                });
 
-            return response;
-        } catch (error) {
-            console.log(error);
+                return response;
+            } catch (error) {
+                console.log(error);
+            }
         }
     }
-}
 
 module.exports = DbService;
